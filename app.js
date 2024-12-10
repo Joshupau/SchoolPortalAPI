@@ -45,3 +45,5 @@ require("./routes")(app);
 
 const port = process.env.PORT || 5000; // Dynamic port for deployment
 server.listen(port, () => console.log(`Server is running on port: ${port}`));
+
+module.exports = app;

@@ -2,8 +2,8 @@ const StaffUsers = require("../models/Staffusers");
 const { default: mongoose } = require("mongoose");
 const Ticketcounter = require("../models/Ticketcounter");
 const Studentusers = require("../models/Studentusers"); // Import the Studentusers model
-const Gradelevel = require("../models/gradelevel");
-const Program = require("../models/Program")
+const Program = require("../models/Program");
+const Gradelevel = require("../models/Gradelevel");
 
 exports.initialize = async () => {
 
