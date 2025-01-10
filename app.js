@@ -24,9 +24,7 @@ app.use(cors(corsConfig));
 const server = http.createServer(app);
 
 mongoose
-  .connect(process.env.DATABASE_URL, {
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.DATABASE_URL)
   .then(() => {
     initialize();
     console.log("MongoDB Connected");
