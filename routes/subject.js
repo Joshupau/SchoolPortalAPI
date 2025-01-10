@@ -1,4 +1,4 @@
-const { createSubject, getSubjects, deletesubjects, editsubjects } = require("../controllers/Subject")
+const { createSubject, getSubjects, deletesubjects, editsubjects } = require("../controllers/subject")
 const { protectsuperadmin } = require("../middleware/middleware")
 
 const router = require("express").Router()
