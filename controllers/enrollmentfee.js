@@ -1,5 +1,5 @@
 const { default: mongoose } = require("mongoose");
-const Gradelevel = require("../models/gradelevel");
+const Gradelevel = require("../models/Gradelevel");
 const EnrollmentFee = require("../models/Enrollmentfee");
 
 

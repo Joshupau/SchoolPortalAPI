@@ -1,7 +1,7 @@
 const { default: mongoose } = require("mongoose")
 const Schoolyear = require("../models/Schoolyear")
 const Section = require("../models/Section")
-const Gradelevel = require("../models/gradelevel")
+const Gradelevel = require("../models/Gradelevel")
 const Studentuserdetails = require("../models/Studentuserdetails")
 const Schedule = require("../models/Schedule")
 const Subjectgrade = require("../models/Subjectgrade")
