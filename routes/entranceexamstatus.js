@@ -1,11 +1,21 @@
 const { entranceexamstatus, setentranceexamstatus, getentranceexamstatus } = require("../controllers/entranceexam")
-const { protectticket, protectsuperadmin } = require("../middleware/middleware")
+const { protectticket, protectsuperadmin, protectadmin } = require("../middleware/middleware")
 
 const router = require("express").Router()
 
 router
- .get("/entranceexamstatus", protectticket, entranceexamstatus)
- .get("/setentranceexamstatus", protectsuperadmin, setentranceexamstatus)
- .get("/getentranceexamstatus", protectsuperadmin, getentranceexamstatus)
- 
+// #region SUPERADMIN
+.get("/setentranceexamstatus", protectsuperadmin, setentranceexamstatus)
+.get("/getentranceexamstatus", protectsuperadmin, getentranceexamstatus)
+// #endregion
+
+// #region Admin
+.get("/setentranceexamstatusad", protectadmin, setentranceexamstatus)
+.get("/getentranceexamstatusad", protectadmin, getentranceexamstatus)
+// #endregion
+
+// #region TICKET USER
+.get("/entranceexamstatus", protectticket, entranceexamstatus)
+// #endregion
+
 module.exports = router

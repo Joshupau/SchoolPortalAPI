@@ -4,12 +4,12 @@ const Ticketusers = require("../models/Ticketusers");
 const Entranceexam = require("../models/Entranceexam");
 
 exports.submitrequirement = async (req, res) => {
-    const { level, program, gender, firstname, middlename, lastname, address, email, phonenumber, telephonenumber, mother, father  } = req.body
+    const { level, program, gender, firstname, middlename, lastname, address, email, phonenumber, telephonenumber, mcontact, mfirstname, mmaidenname, ffirstname, flastname, fcontact, gfirstname, glastname, gcontact, religion, civilstatus  } = req.body
 
     const files = req.files;
     if (
         !level || !program || !firstname || !lastname || !address || !email ||
-        !phonenumber|| !gender || !telephonenumber || !mother || !father
+        !phonenumber|| !gender || !telephonenumber || !religion || !civilstatus
     ) {
         return res.status(400).json({ message: "failed", data: "Incomplete text fields." });
     }
@@ -22,23 +22,41 @@ exports.submitrequirement = async (req, res) => {
 
     const birthcertificate = files.bc[0].path
     const form137 = files.form[0].path
+    const tor = Array.isArray(files?.tor) && files.tor.length > 0 ? files.tor[0].path : null;
+
 
 
     await Requirements.create({
-        firstname: firstname,
-        middlename: middlename,
-        lastname: lastname,
-        gender: gender,
-        address: address,
         level: new mongoose.Types.ObjectId(level),
         program: new mongoose.Types.ObjectId(program),
-        email: email,
-        phonenumber: phonenumber,
-        telephonenumber: telephonenumber,
-        mother: mother,
-        father: father,
-        form137: form137,
-        birthcertificate: birthcertificate
+        firstname,
+        middlename,
+        lastname,
+        gender,
+        address,
+        email,
+        phonenumber,
+        telephonenumber,
+        religion,
+        civilstatus,
+        form137,
+        tor,
+        birthcertificate,
+        guardian: {
+            firstname: gfirstname,
+            lastname: glastname,
+            contact: gcontact,
+        },
+        mother: {
+            firstname: mfirstname,
+            maidenname: mmaidenname,
+            contact: mcontact,
+        },
+        father: {
+            firstname: ffirstname,
+            lastname: flastname,
+            contact: fcontact,
+        },
     })
     .then(async data => { 
         const ticket = await Ticketusers.create({
@@ -50,7 +68,7 @@ exports.submitrequirement = async (req, res) => {
         })
         .then(data => data)
         .catch(async err => {
-            console.log(`There's a problem encountered when creating ticket user for ${id}. Error: ${err}`)
+            console.log(`There's a problem encountered when creating ticket user. Error: ${err}`)
             return res.status(400).json({ message: "failed", data: "There's a problem with the server. Please contact support for more details."})
         })
 

@@ -31,9 +31,63 @@ const StudentUserDetailsSchema = new mongoose.Schema(
         gender: {
             type: String
         },
-        // dateofbirth: {
-        //     type: Date
-        // },
+        phonenumber: {
+            type: Number,
+        },
+        telephonenumber: {
+            type: Number,
+        },
+        mother: {
+            firstname: {
+                type: String,
+            },
+            maidenname: {
+                type: String,
+            },
+            contact: {
+                type: String,
+            }
+        },
+        father: {
+            firstname: {
+                type: String,
+            },
+            lastname: {
+                type: String,
+            },
+            contact: {
+                type: String,
+            }
+        },
+        guardian: {
+            firstname: {
+                type: String,
+            },
+            middlename: {
+                type: String,
+            },
+            lastname: {
+                type: String,
+            },
+            contact: {
+                type: String,
+            }        
+        },
+        religion: {
+            type: String,
+        },
+        civilstatus: {
+            type: String,
+        },
+        form137: {
+            type: String,
+        },
+        tor: {
+            type: String,
+        },
+        birthcertificate: {
+            type: String
+        },
         address: {
             type: String
         },

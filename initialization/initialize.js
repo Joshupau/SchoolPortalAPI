@@ -2,8 +2,10 @@ const StaffUsers = require("../models/Staffusers");
 const { default: mongoose } = require("mongoose");
 const Ticketcounter = require("../models/Ticketcounter");
 const Studentusers = require("../models/Studentusers"); // Import the Studentusers model
+const Gradelevel = require("../models/gradelevel");
 const Program = require("../models/Program");
-const Gradelevel = require("../models/Gradelevel");
+const EnrollmentFee = require("../models/Enrollmentfee");
+const GradingPeriod = require("../models/Gradingperiod");
 
 exports.initialize = async () => {
 
@@ -107,8 +109,35 @@ exports.initialize = async () => {
       
             { level: "Grade 12", program: programMap["Senior High-School"] },
           ];
-          await Gradelevel.insertMany(gradeLevels);
-         console.log("Grade levels initialized!");        
+
+
+          const createdGradeLevels = await Gradelevel.insertMany(gradeLevels);
+          console.log("Grade levels initialized!");
+  
+          for (const grade of createdGradeLevels) {
+              await EnrollmentFee.create({
+                  gradelevel: grade._id, 
+                  program: grade.program, 
+              });
+          }
+        console.log("Enrollment fee data initialized!");
+    }
+
+
+    const isGradingPeriod = await GradingPeriod.find()
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while searching for existing Grading Period in initialization. Error: ${err}`)
+        return;
+    })
+
+
+    if(isGradingPeriod.length <= 0){
+        await GradingPeriod.create({
+            quarter: "Q1"
+        })
+
+        console.log("Grading Period initialized")
     }
 
     console.log("SERVER DATA INITIALIZED");

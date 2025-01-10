@@ -2,6 +2,10 @@ const { default: mongoose } = require("mongoose");
 const Staffusers = require("../models/Staffusers");
 const Staffuserdetails = require("../models/Staffuserdetails");
 
+const encrypt = async password => {
+    const salt = await bcrypt.genSalt(10);
+    return await bcrypt.hash(password, salt);
+}
 
 exports.staffuserlist = async (req, res) => {
     const { page, limit, status, search, filter } = req.query;
@@ -354,3 +358,104 @@ exports.getteacherlist = async (req, res) => {
     
 
 } 
+
+
+exports.getUserDetails = async (req, res) => {
+        const { id } = req.user;
+
+    const userdetails = await Staffusers.aggregate([
+            {
+                $match: { _id: new mongoose.Types.ObjectId(id) },
+            },
+            {
+                $lookup: {
+                    from: "staffuserdetails", 
+                    localField: "_id", 
+                    foreignField: "owner",
+                    as: "staffdetails",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$staffdetails",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            {
+                $project: {
+                    _id: 1,
+                    username: 1,
+                    auth: 1,
+                    status: 1,
+                    fullname: {
+                        $concat: [
+                            "$staffdetails.firstname",
+                            " ",
+                            "$staffdetails.middlename",
+                            " ",
+                            "$staffdetails.lastname",
+                        ],
+                    },
+                    email: "$staffdetails.email",
+                    contact: "$staffdetails.contact",
+                },
+            },
+        ]);
+
+        if (!userdetails || userdetails.length === 0) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        return res.status(200).json({
+            message: "success",
+            data: userdetails[0], 
+        });
+};
+
+
+exports.changepassword = async (req, res) => {
+    const { id } = req.user
+    const { oldpw, newpw } = req.query
+
+    if(!oldpw || !newpw){
+        return res.status(400).json({ message: "failed", data: "Please input old and new password."})
+    }
+    const user = await Staffusers.findOne({ id: new mongoose.Types.ObjectId(id) })
+    .select("password")
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encounter when fetching password in adminchangepassword. Error: ${err}`)
+        return res.status(400).json({ data: "bad-request", message: "There's a problem with the server. Please contact customer support for more details."})
+    })
+
+    const isOldPasswordCorrect = await user.matchPassword(oldpw);
+    if (!isOldPasswordCorrect) {
+        return res.status(400).json({ message: "failed", data: "Old password is incorrect." });
+    }
+
+    if (newpw.length < 8) {
+        return res.status(400).json({ message: "failed", data: "New password must be at least 8 characters!" });
+    }
+
+    const passwordregex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordregex.test(newpw)) {
+        return res.status(400).json({ message: "failed", data: "Please follow the password requirements for new password." });
+    }
+
+    const isNewPasswordSame = await user.matchPassword(newpw);
+    if (isNewPasswordSame) {
+        return res.status(400).json({ message: "failed", data: "Your new password is the same as the old password. Please use a different password." });
+    }
+
+    const hashedPassword = await encrypt(newpw);
+
+    await Staffusers.findOneAndUpdate({ _id: new mongoose.Types.ObjectId(id)}, { $set: { password: hashedPassword }})
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while changing user password. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+    })
+
+    return res.status(200).json({ message: "success" })
+
+}

@@ -3,6 +3,8 @@
 const { default: mongoose } = require("mongoose");
 const Schedule = require("../models/Schedule");
 const Schoolyear = require("../models/Schoolyear");
+const Studentuserdetails = require("../models/Studentuserdetails");
+const Section = require("../models/Section");
 
 exports.createSchedule = async (req, res) => {
     const { teacher, subject, section, day, starttime, endtime } = req.body
@@ -77,6 +79,25 @@ exports.createSchedule = async (req, res) => {
             data: "No current school year found. Please set a current school year."
         });
     }
+
+    const isSubjectExisting = await Section.findOne({ _id: section})
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching subject for is Subject Existing. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+
+    const subjectExists = isSubjectExisting.subjects.includes(isSubjectExisting);
+
+    console.log(subjectExists)
+    if (!subjectExists) {
+        console.log("hi passed here")
+        isSubjectExisting.subjects.push(subject);     
+        await isSubjectExisting.save();
+
+    }
+
+
 
     await Schedule.create({
         teacher: new mongoose.Types.ObjectId(teacher),
@@ -462,4 +483,291 @@ exports.deletschedule = async (req, res) => {
     })
 
     return res.status(200).json({ message: "success" })
+}
+
+exports.getSchedulesTeacher = async (req, res) => {
+    const { id } = req.user;
+
+    const matchconditionpipeline = [
+        {
+            $match: {
+                teacher: new mongoose.Types.ObjectId(id),
+            },
+        },
+        {
+            $lookup: {
+                from: "staffusers",
+                localField: "teacher",
+                foreignField: "_id",
+                as: "Teacherdetails",
+            },
+        },
+        {
+            $unwind: { path: "$Teacherdetails", preserveNullAndEmptyArrays: true },
+        },
+        {
+            $lookup: {
+                from: "subjects",
+                localField: "subject",
+                foreignField: "_id",
+                as: "Subjectdetails",
+            },
+        },
+        {
+            $unwind: { path: "$Subjectdetails", preserveNullAndEmptyArrays: true },
+        },
+        {
+            $lookup: {
+                from: "sections",
+                localField: "section",
+                foreignField: "_id",
+                as: "Sectiondetails",
+            },
+        },
+        {
+            $unwind: { path: "$Sectiondetails", preserveNullAndEmptyArrays: true },
+        },
+        {
+            $lookup: {
+                from: "schoolyears",
+                localField: "schoolyear",
+                foreignField: "_id",
+                as: "Schoolyeardetails",
+            },
+        },
+        {
+            $unwind: { path: "$Schoolyeardetails", preserveNullAndEmptyArrays: true },
+        },
+        {
+            $project: {
+                teacher: "$Teacherdetails.username",
+                subject: "$Subjectdetails.name",
+                section: "$Sectiondetails.name",
+                schoolyear: "$Schoolyeardetails.year",
+                day: 1,
+                starttime: 1,
+                endtime: 1,
+            },
+        },
+        {
+            $addFields: {
+                starttimeMinutes: {
+                    $add: [
+                        { $multiply: [{ $toInt: { $substr: ["$starttime", 0, 2] } }, 60] }, // Convert hours to minutes
+                        { $toInt: { $substr: ["$starttime", 3, 2] } } // Convert minutes to integer
+                    ],
+                },
+                endtimeMinutes: {
+                    $add: [
+                        { $multiply: [{ $toInt: { $substr: ["$endtime", 0, 2] } }, 60] }, // Convert hours to minutes
+                        { $toInt: { $substr: ["$endtime", 3, 2] } } // Convert minutes to integer
+                    ],
+                },
+            },
+        },
+        {
+            $sort: { day: 1, starttimeMinutes: 1, endtimeMinutes: 1 },
+        },
+    ];
+
+    const schedules = await Schedule.aggregate(matchconditionpipeline)
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching schedule of teacher: ${teacherId}. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please try again later."})
+    })
+
+    console.log(schedules)
+
+    const finaldata = []
+
+    schedules.forEach(temp => {
+        finaldata.push({
+            id: temp._id,
+            day: temp.day,
+            starttime: temp.starttime,
+            endtime: temp.endtime,
+            teacher: temp.teacher,
+            subject: temp.subject,
+            section: temp.section
+        })
+    })
+
+    return res.status(200).json({ message: "success", data: finaldata })
+}
+
+
+
+exports.getStudentSchedule = async (req, res) => {
+    const { id } = req.user;
+
+    const student = await Studentuserdetails.findOne({ owner: new mongoose.Types.ObjectId(id) })
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching student by id. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact customer support for more details." })
+    })
+
+    const section = student.section
+
+    const matchconditionpipeline = [
+        {
+            $match: {
+                section: new mongoose.Types.ObjectId(section),
+            },
+        },
+        {
+            $lookup: {
+                from: "staffusers",
+                localField: "teacher",
+                foreignField: "_id",
+                as: "Teacherdetails",
+            },
+        },
+        {
+            $unwind: { path: "$Teacherdetails", preserveNullAndEmptyArrays: true },
+        },
+        {
+            $lookup: {
+                from: "subjects",
+                localField: "subject",
+                foreignField: "_id",
+                as: "Subjectdetails",
+            },
+        },
+        {
+            $unwind: { path: "$Subjectdetails", preserveNullAndEmptyArrays: true },
+        },
+        {
+            $lookup: {
+                from: "sections",
+                localField: "section",
+                foreignField: "_id",
+                as: "Sectiondetails",
+            },
+        },
+        {
+            $unwind: { path: "$Sectiondetails", preserveNullAndEmptyArrays: true },
+        },
+        {
+            $lookup: {
+                from: "schoolyears",
+                localField: "schoolyear",
+                foreignField: "_id",
+                as: "Schoolyeardetails",
+            },
+        },
+        {
+            $unwind: { path: "$Schoolyeardetails", preserveNullAndEmptyArrays: true },
+        },
+        {
+            $project: {
+                teacher: "$Teacherdetails.username",
+                subject: "$Subjectdetails.name",
+                section: "$Sectiondetails.name",
+                schoolyear: "$Schoolyeardetails.year",
+                day: 1,
+                starttime: 1,
+                endtime: 1,
+            },
+        },
+        {
+            $addFields: {
+                starttimeMinutes: {
+                    $add: [
+                        { $multiply: [{ $toInt: { $substr: ["$starttime", 0, 2] } }, 60] }, // Convert hours to minutes
+                        { $toInt: { $substr: ["$starttime", 3, 2] } } // Convert minutes to integer
+                    ],
+                },
+                endtimeMinutes: {
+                    $add: [
+                        { $multiply: [{ $toInt: { $substr: ["$endtime", 0, 2] } }, 60] }, // Convert hours to minutes
+                        { $toInt: { $substr: ["$endtime", 3, 2] } } // Convert minutes to integer
+                    ],
+                },
+            },
+        },
+        {
+            $sort: { day: 1, starttimeMinutes: 1, endtimeMinutes: 1 },
+        },
+    ];
+
+    const schedules = await Schedule.aggregate(matchconditionpipeline)
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching schedule of teacher: ${teacherId}. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please try again later."})
+    })
+
+    console.log(schedules)
+
+    const finaldata = []
+
+    schedules.forEach(temp => {
+        finaldata.push({
+            id: temp._id,
+            day: temp.day,
+            starttime: temp.starttime,
+            endtime: temp.endtime,
+            teacher: temp.teacher,
+            subject: temp.subject,
+            section: temp.section
+        })
+    })
+
+    return res.status(200).json({ message: "success", data: finaldata })
+}
+
+
+exports.getsubjectsectionbyteacherid = async (req, res) => {
+
+    const { id } = req.user
+
+    const data = await Schedule.aggregate([
+        {
+            $match: { teacher: new mongoose.Types.ObjectId(id) }
+        },
+        {
+            $lookup: {
+                from: "subjects",
+                localField: "subject",
+                foreignField: "_id",
+                as: "Subjectdetails"
+            }
+        },
+        {
+            $unwind: "$Subjectdetails" 
+        },
+        {
+            $lookup: {
+                from: "sections",
+                localField: "section",
+                foreignField: "_id",
+                as: "Sectiondetails"
+            }
+        },
+        {
+            $unwind: "$Sectiondetails"
+        }
+    ]);
+
+    if(!data){
+        return res.status(400).json({ message: "failed", data: "No available data."})
+    }
+
+    const finaldata = []
+
+    data.forEach(temp => {
+        const { _id, Sectiondetails, Subjectdetails } = temp
+
+        finaldata.push({
+            Scheduleid: _id,
+            Subjectid: Subjectdetails._id,
+            Sectionid: Sectiondetails._id,
+            Subjectsection: `${Subjectdetails.name} - ${Sectiondetails.name}`
+        })
+    })
+
+
+    return res.status(200).json({ message: "success", data: finaldata})
 }

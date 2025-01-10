@@ -14,5 +14,6 @@ router
 .post("/creategradelevel", protectsuperadmin, creategradelevel)
 .post("/editgradelevel", protectsuperadmin, editgradelevel)
 .get("/deletegradelevel", protectsuperadmin, deletegradelevel)
+.get("/getallgradelevelsa", protectsuperadmin, getAllGradelevels)
 
 module.exports = router;
